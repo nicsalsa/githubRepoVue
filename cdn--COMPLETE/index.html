@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Vue! - CDN Complete</title>
+  <!-- Base styles -->
+  <link rel="stylesheet" href="../sharedAssets/styles/style.css">
+  <link rel="stylesheet" href="../sharedAssets/styles/cdn-style.css">
+</head>
+
+<body>
+  <div id="app" class="wrapper">
+
+    <search @search-event="searchRepos($event)"></search>
+    <results :repos="repos" v-if="repos.length"></results>
+    <searching v-if="search.isSearching"></searching>
+    <errors v-if="search.hasError"></errors>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.5.17/dist/vue.js"></script>
+
+  <script>
+
+    Vue.component('search', {
+      template: `
+        <section class="search">
+          <h1>Search for Github repo</h1>
+          <form @submit.prevent="$emit('search-event', q)">
+            <input
+              id="search"
+              name="search"
+              type="search"
+              v-model="q"
+              required
+            >
+            <label for="search">Repo search</label>
+          </form>
+        </section>
+      `,
+      data() {
+        return {
+          q: '',
+        }
+      }
+    });
+
+    Vue.component('results', {
+      template: `
+        <section class="results">
+          <ul>
+            <li v-for="repo in repos" class="repo">
+              <a :href="repo.html_url" class="repo__link">
+                <div class="repo__image">
+                  <img :src="repo.owner.avatar_url" :alt="repo.full_name">
+                </div>
+                <div class="repo__meta">
+                  <p>
+                    <strong>Dev:</strong> {{ repo.owner.login }}
+                  </p>
+                  <p>
+                    <strong>Repo:</strong> {{ repo.name }}
+                  </p>
+                </div>
+              </a>
+            </li>
+          </ul>
+        </section>
+      `,
+      props: ['repos'],
+    });
+
+    Vue.component('searching', {
+      template: `
+        <section class="searching">
+          <p>{{ searchingMessage }}</p>
+        </section>
+      `,
+      data() {
+        return {
+          searchingMessage: "Searching...",
+        };
+      },
+    });
+
+    Vue.component('errors', {
+      template: `
+        <section class="errors">
+          <h2>{{ errorMessage }}</h2>
+        </section>
+      `,
+      data() {
+        return {
+          errorMessage: "Oops, nothing here",
+        };
+      },
+    });
+
+    const app = new Vue({
+      el: '#app',
+      data: {
+        repos: [],
+        search: {
+          isSearching: false,
+          hasError: false,
+        }
+      },
+      methods: {
+        async searchRepos(q) {
+          this.search.isSearching = true;
+          this.resetSearch();
+          const response = await fetch(`https://api.github.com/search/repositories?q=${q}`);
+
+          const json = await response.json();
+          this.search.isSearching = false;
+          if (json.items.length) {
+            this.repos = json.items;
+          } else {
+            this.search.hasError = true;
+          }
+        },
+        resetSearch() {
+          this.search.hasError = false;
+          this.repos = [];
+        }
+      }
+    });
+  </script>
+</body>
+
+</html>
